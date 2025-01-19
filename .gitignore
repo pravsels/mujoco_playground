@@ -27,3 +27,5 @@ robot/
 adhoc/
 *.png
 !config_example.json
+!hfield.png
+!rocky_texture.png
