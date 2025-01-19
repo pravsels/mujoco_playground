@@ -12,4 +12,4 @@
 
 # K-Scale Mujoco Playground Library
 
-Welcome to the K-Scale Mujoco Playground Library! For more information, see the [documentation](https://docs.kscale.dev/simulation/mujoco_playground).
+Welcome to the K-Scale Mujoco Playground Library! For more information, see the [documentation](https://docs.kscale.dev/docs/mujoco#/).
