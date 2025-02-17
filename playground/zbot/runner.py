@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 
 
 class ZBotRunner(BaseRunner):
-
     @classmethod
     def setup_environment(cls, task: str) -> RunnerConfig:
         env_config = zbot_joystick.default_config()

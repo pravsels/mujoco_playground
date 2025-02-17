@@ -38,5 +38,5 @@ setup(
     tests_require=requirements_dev,
     extras_require={
         "dev": requirements_dev,
-    }
+    },
 )
