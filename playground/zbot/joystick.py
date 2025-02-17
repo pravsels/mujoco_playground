@@ -8,12 +8,10 @@ import numpy as np
 from ml_collections import config_dict
 from mujoco import mjx
 from mujoco.mjx._src import math
-from zbot import base as zbot_base
-from zbot import zbot_constants as consts
-
 from mujoco_playground._src import gait, mjx_env
 from mujoco_playground._src.collision import geoms_colliding
 
+from playground.zbot import base as zbot_base, zbot_constants as consts
 
 NUM_JOINTS = 10
 
@@ -28,15 +26,15 @@ def default_config() -> config_dict.ConfigDict:
       history_len=1,
       soft_joint_pos_limit_factor=0.95,
       noise_config=config_dict.create(
-          level=1.0,  # Set to 0.0 to disable noise.
+          level=1.0,
           scales=config_dict.create(
-              hip_pos=0.03,  # rad
+              hip_pos=0.03,
               knee_pos=0.05,
               ankle_pos=0.08,
-              joint_vel=1.5,  # rad/s
+              joint_vel=1.5,
               gravity=0.05,
               linvel=0.1,
-              gyro=0.2,  # angvel.
+              gyro=0.2,
           ),
       ),
       reward_config=config_dict.create(
@@ -92,7 +90,7 @@ class Joystick(zbot_base.ZbotEnv):
       task: str = "flat_terrain",
       config: config_dict.ConfigDict = default_config(),
       config_overrides: Optional[Dict[str, Union[str, int, list[Any]]]] = None,
-  ):
+  ) -> None:
     super().__init__(
         xml_path=consts.task_to_xml(task).as_posix(),
         config=config,
@@ -112,24 +110,21 @@ class Joystick(zbot_base.ZbotEnv):
     self._soft_uppers = c + 0.5 * r * self._config.soft_joint_pos_limit_factor
 
     hip_indices = []
-    hip_indices.append(self._mj_model.joint(f"L_Hip_Roll").qposadr - 7)
-    hip_indices.append(self._mj_model.joint(f"R_Hip_Roll").qposadr - 7)
-    hip_indices.append(self._mj_model.joint(f"L_Hip_Yaw").qposadr - 7)
-    hip_indices.append(self._mj_model.joint(f"R_Hip_Yaw").qposadr - 7)
+    hip_indices.append(self._mj_model.joint("L_Hip_Roll").qposadr - 7)
+    hip_indices.append(self._mj_model.joint("R_Hip_Roll").qposadr - 7)
+    hip_indices.append(self._mj_model.joint("L_Hip_Yaw").qposadr - 7)
+    hip_indices.append(self._mj_model.joint("R_Hip_Yaw").qposadr - 7)
     self._hip_indices = jp.array(hip_indices)
 
     knee_indices = []
-    knee_indices.append(self._mj_model.joint(f"L_Knee_Pitch").qposadr - 7)
-    knee_indices.append(self._mj_model.joint(f"R_Knee_Pitch").qposadr - 7)
+    knee_indices.append(self._mj_model.joint("L_Knee_Pitch").qposadr - 7)
+    knee_indices.append(self._mj_model.joint("R_Knee_Pitch").qposadr - 7)
     self._knee_indices = jp.array(knee_indices)
 
-    # fmt: off
-    # Test that
     self._weights = jp.array([
         1.0, 1.0, 0.01, 0.01, 1.0,  # left leg.
-        1.0, 1.0, 0.01, 0.01, 1.0  # right leg.
+        1.0, 1.0, 0.01, 0.01, 1.0,  # right leg.
     ])
-    # fmt: on
 
     self._torso_body_id = self._mj_model.body(consts.ROOT_BODY).id
     self._torso_mass = self._mj_model.body_subtreemass[self._torso_body_id]
@@ -491,10 +486,10 @@ class Joystick(zbot_base.ZbotEnv):
 
   # Base-related rewards.
 
-  def _cost_lin_vel_z(self, global_linvel) -> jax.Array:
+  def _cost_lin_vel_z(self, global_linvel: jax.Array) -> jax.Array:
     return jp.square(global_linvel[2])
 
-  def _cost_ang_vel_xy(self, global_angvel) -> jax.Array:
+  def _cost_ang_vel_xy(self, global_angvel: jax.Array) -> jax.Array:
     return jp.sum(jp.square(global_angvel[:2]))
 
   def _cost_orientation(self, torso_zaxis: jax.Array) -> jax.Array:
@@ -505,14 +500,10 @@ class Joystick(zbot_base.ZbotEnv):
         base_height - self._config.reward_config.base_height_target
     )
 
-  # Energy related rewards.
-
   def _cost_torques(self, torques: jax.Array) -> jax.Array:
     return jp.sum(jp.abs(torques))
 
-  def _cost_energy(
-      self, qvel: jax.Array, qfrc_actuator: jax.Array
-  ) -> jax.Array:
+  def _cost_energy(self, qvel: jax.Array, qfrc_actuator: jax.Array) -> jax.Array:
     return jp.sum(jp.abs(qvel) * jp.abs(qfrc_actuator))
 
   def _cost_action_rate(

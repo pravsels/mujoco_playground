@@ -3,8 +3,8 @@
 2. Add shoulders
 3. Add motors legs
   -->
-<mujoco model="zbot ">
-  <compiler angle="radian" meshdir="playground/resources/zbot/assets" />
+<mujoco model="zbot">
+  <compiler angle="radian" meshdir="meshes" />
   <option iterations="3" ls_iterations="5" timestep="0.002" integrator="Euler">
     <flag eulerdamp="disable"/>
   </option>
@@ -67,7 +67,7 @@
       <camera name="front" pos="1.210 -0.435 0.32" xyaxes="0.342 0.940 0.000 -0.321 0.117 0.940" mode="trackcom"/>
       <camera name="track" pos="0.805 -1.105 0.2" xyaxes="0.814 0.580 0.000 -0.140 0.196 0.971" mode="trackcom"/>
       <inertial pos="-8.68153e-05 0.00960053 -0.0589276" quat="0.707354 -0.00845854 0.000660632 0.706809" mass="2.42118" diaginertia="0.0213218 0.0124974 0.0110819"/>
-     
+
       <geom class="visual" type="mesh" rgba="0.95 0.93 0.88 1" mesh="Z-BOT2_MASTER-BODY-SKELETON"/>
       <geom class="visual" pos="0.055995 -0.00960999 -0.00952781" quat="1.64085e-08 1.64085e-08 -0.707107 -0.707107" type="mesh" rgba="0.95 0.93 0.88 1" mesh="Z-BOT2-MASTER-SHOULDER2"/>
       <geom class="visual" pos="0.07584 0.00919001 -0.0144278" quat="3.2817e-08 0.707107 -1.89469e-08 -0.707107" type="mesh" rgba="0.95 0.93 0.88 1" mesh="3215_1Flange"/>
