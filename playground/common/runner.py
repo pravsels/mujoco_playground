@@ -158,7 +158,7 @@ class BaseRunner(ABC):
         self.logger.info("Model loaded successfully")
 
     @functools.partial(jax.jit, static_argnums=(0,))
-    def run_step(self, state: jax.Array, rng: jax.Array, inference_fn: any) -> tuple[jax.Array, jax.Array]:
+    def run_eval_step(self, state: jax.Array, rng: jax.Array, inference_fn: any) -> tuple[jax.Array, jax.Array]:
         act_rng, next_rng = jax.random.split(rng)
         ctrl, _ = inference_fn(state.obs, act_rng)
         next_state = self.eval_env.step(state, ctrl)
