@@ -13,6 +13,7 @@ __pycache__/
 
 # Databases
 *.db
+*.mp4
 
 # Build artifacts
 build/
@@ -25,6 +26,7 @@ out*/
 # Other artifacts
 robot/
 adhoc/
+checkpoints/
 *.png
 !config_example.json
 !hfield.png
