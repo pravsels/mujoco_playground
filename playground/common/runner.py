@@ -4,6 +4,10 @@ import argparse
 import functools
 import logging
 import pickle
+import json
+from orbax import checkpoint as ocp 
+from etils import epath
+from flax.training import orbax_utils
 from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass
 from datetime import datetime
@@ -13,6 +17,8 @@ from typing import Any, Callable, Optional
 import cv2
 import jax
 import jax.numpy as jnp
+import matplotlib
+matplotlib.use('Agg')  # Use Agg backend for headless rendering
 import matplotlib.pyplot as plt
 import mujoco
 import numpy as np
@@ -95,6 +101,14 @@ class BaseRunner(ABC):
             rl_config=config_dict.create(**self._get_rl_config_dict()),
         )
 
+        # Setup checkpoints dir 
+        self.ckpt_path = epath.Path("checkpoints").resolve() / self.env_name
+        self.ckpt_path.mkdir(parents=True, exist_ok=True)
+        print(f"{self.ckpt_path}")
+
+        with open(self.ckpt_path / "config.json", "w") as fp:
+          json.dump(self.env_config.to_dict(), fp, indent=4)
+
     @abstractmethod
     def setup_environment(self) -> RunnerConfig: ...
 
@@ -141,6 +155,13 @@ class BaseRunner(ABC):
             out.write(frame_bgr)
         out.release()
 
+    def policy_params_callback(self, current_step, make_policy, params):
+        del make_policy # not using this 
+        orbax_checkpointer = ocp.PyTreeCheckpointer()
+        save_args = orbax_utils.save_args_from_target(params)
+        path = self.ckpt_path / f"{current_step}"
+        orbax_checkpointer.save(path, params, force=True, save_args=save_args)
+
     def progress_callback(self, num_steps: int, metrics: dict) -> None:
         plt.figure()
         self.training_state.times.append(datetime.now())
@@ -177,6 +198,7 @@ class BaseRunner(ABC):
             network_factory=network_factory,
             randomization_fn=self.randomizer,
             progress_fn=self.progress_callback,
+            **({"policy_params_fn": self.policy_params_callback} if self.args.save_model else {})
         )
 
         _, params, _ = train_fn(
@@ -188,14 +210,22 @@ class BaseRunner(ABC):
         self.logger.info("Time to jit: %s", self.training_state.times[1] - self.training_state.times[0])
         self.logger.info("Time to train: %s", self.training_state.times[-1] - self.training_state.times[1])
 
-        if self.args.save_model:
-            model.save_params(params, "params")
-
     def load_model(self) -> None:
-        model_path = Path("checkpoints") / f"{self.env_name}_params.pkl"
-        with open(model_path, "rb") as f:
-            self.training_state.params = pickle.load(f)
-        self.logger.info("Model loaded successfully")
+        latest_ckpts = list(self.ckpt_path.glob("*"))
+        latest_ckpts = [ckpt for ckpt in latest_ckpts if ckpt.is_dir()]
+
+        if not latest_ckpts:
+            self.logger.error("No checkpoints found in %s", self.ckpt_path)
+            return
+
+        # Sort directories numerically assuming directory names are step numbers
+        latest_ckpts.sort(key=lambda x: int(x.name))
+        latest_ckpt = latest_ckpts[-1]  # Select the latest checkpoint
+        self.logger.info("Loading latest checkpoint from: %s", latest_ckpt)
+        # Restore using Orbax checkpointer
+        orbax_checkpointer = ocp.PyTreeCheckpointer()
+        self.training_state.params = orbax_checkpointer.restore(latest_ckpt)
+        self.logger.info("Model loaded successfully from %s", latest_ckpt)
 
     @functools.partial(jax.jit, static_argnums=(0, 3))
     def run_eval_step(self, state: jax.Array, rng: jax.Array, inference_fn: any) -> tuple[jax.Array, jax.Array]:
